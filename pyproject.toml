@@ -1,0 +1,32 @@
+# Tooling config only. This project is not a distributable package: analysis logic lives in bin/ as
+# standalone CLI scripts (the nf-core convention) rather than an importable library, so there is no
+# [project] table and nothing to build.
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = ["work", "results", "data", ".nextflow"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # import sorting
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "PTH",  # prefer pathlib over os.path
+    "RET",  # return-statement hygiene
+]
+ignore = [
+    # Bare-ish excepts are load-bearing in the loader shims in bin/fetch_data.py: upstream libraries
+    # raise a wide and unstable set of exception types across versions, and the point of the shim is
+    # to try the next loader regardless of how the previous one failed.
+    "BLE001",
+    # Long descriptive f-strings in log output are fine.
+    "E501",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

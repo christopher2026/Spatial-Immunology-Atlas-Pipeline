@@ -1,0 +1,32 @@
+# Force LF line endings on everything that is executed by a Linux shell or interpreter.
+#
+# This is not cosmetic. Git on Windows converts LF to CRLF on checkout by default, and a shell script
+# with CRLF line endings fails inside WSL with the deeply unhelpful error:
+#
+#     /usr/bin/env: 'bash\r': No such file or directory
+#
+# The same class of failure hits Dockerfile RUN scripts, python shebangs, and Nextflow script blocks.
+# Since this project is authored on Windows and executed on Linux, pinning LF repo-wide is the fix.
+
+* text=auto eol=lf
+
+*.sh        text eol=lf
+*.py        text eol=lf
+*.nf        text eol=lf
+*.config    text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.j2        text eol=lf
+*.toml      text eol=lf
+*.md        text eol=lf
+Dockerfile  text eol=lf
+*.Dockerfile text eol=lf
+.gitignore  text eol=lf
+
+# Binary: never touch these.
+*.h5        binary
+*.h5ad      binary
+*.png       binary
+*.jpg       binary
+*.tiff      binary
+*.gz        binary

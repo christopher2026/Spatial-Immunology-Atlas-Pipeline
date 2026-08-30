@@ -1,0 +1,27 @@
+{# Jinja2 template for the standalone pipeline report. Implemented in Phase 5 alongside
+   bin/make_report.py.
+
+   Design constraints:
+     * Single self-contained file. Figures are embedded as base64 data URIs, never referenced by
+       relative path, so the report survives being emailed or moved.
+     * No CDN links. A report that needs the internet to render is not an archive.
+     * Must tell the whole story without the reader opening any PNG.
+
+   Expected context (keep this list in sync with make_report.py):
+     sample        dict   id, n_cells, n_spots, n_sc_clusters, n_sp_clusters, n_shared_genes
+     sections      list   [{title, description, figures: [{caption, b64}], tables: [{caption, html}]}]
+     versions      dict   tool -> version
+     run           dict   nextflow_version, pipeline_version, timestamp, command_line
+#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Spatial Immune Atlas — {{ sample.id }}</title>
+  <!-- TODO Phase 5: inline CSS here. -->
+</head>
+<body>
+  <h1>Spatial Immune Atlas</h1>
+  <p>TODO Phase 5: implement. See modules/local/report/main.nf for the I/O contract.</p>
+</body>
+</html>

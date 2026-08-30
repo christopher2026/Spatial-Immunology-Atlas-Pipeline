@@ -1,0 +1,58 @@
+# Local development environment for standalone `bin/*.py` iteration.
+#
+# This is deliberately NOT the same thing as the Docker images. The containers in docker/ are what
+# Nextflow uses and what CI reproduces; this env exists so you can iterate on scripts in seconds
+# without rebuilding an image. Version pins are kept in sync with docker/scanpy_squidpy.Dockerfile.
+#
+#   micromamba create -y -n stpipe -f env/environment.yml
+#   micromamba activate stpipe
+#
+# Python 3.11 rather than 3.13: the scanpy/squidpy/torch/tangram stack has the widest wheel coverage
+# there, and a deconvolution project is not the place to be debugging missing binary wheels.
+name: stpipe
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - pip
+
+  # Core single-cell stack
+  - anndata=0.13.*
+  - scanpy=1.12.*
+  - squidpy=1.8.*
+  - h5py
+  - scikit-image
+
+  # Clustering backend for Leiden. scanpy calls these; without them sc.tl.leiden fails at runtime.
+  - leidenalg=0.12.*
+  - python-igraph
+
+  # Numerics / plotting
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - matplotlib-base
+  - seaborn
+  - numba
+
+  # Reporting
+  - jinja2
+  - tabulate
+
+  # Dev tooling
+  - ipykernel
+  - jupyterlab
+  - ruff
+
+  - pip:
+      # CPU-only torch wheels. Without this index the default PyPI wheel drags in ~3 GB of CUDA
+      # libraries you will never use, since this dataset runs fine on CPU.
+      - --extra-index-url https://download.pytorch.org/whl/cpu
+      # Doublet detection. Kept on pip because the conda-forge build lags releases.
+      - scrublet==0.2.3
+      # Tangram + torch live here too so you can prototype Phase 4 in the same env.
+      # The pipeline itself uses the dedicated docker/tangram.Dockerfile image.
+      - torch==2.13.0
+      - tangram-sc==1.0.4

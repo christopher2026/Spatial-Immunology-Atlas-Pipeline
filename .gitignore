@@ -1,0 +1,47 @@
+# --- Pipeline data and outputs -------------------------------------------------------
+# Never commit data or results. The repo must be reproducible from code + config alone:
+# `bin/fetch_data.py` fetches inputs, the pipeline regenerates outputs. If a reviewer needs a
+# committed result to understand the project, that belongs in docs/ as a figure, not in results/.
+data/
+results/
+work/
+.nextflow/
+.nextflow.log*
+*.h5ad
+*.h5
+
+# Exception: the committed subsampled test dataset is deliberately small and versioned, because CI
+# must run with no network access to external data hosts.
+!assets/test_data/**
+!assets/test_data/**/*.h5ad
+!assets/test_data/**/*.h5
+
+# --- Python ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+.ruff_cache/
+.pytest_cache/
+
+# --- Notebooks ------------------------------------------------------------------------
+# Exploratory notebooks are fine to keep, but strip outputs before committing: they bloat diffs
+# and leak absolute paths.
+notebooks/scratch/
+
+# --- Tooling --------------------------------------------------------------------------
+.nf-test/
+.nf-test.log
+timeline*.html
+trace*.txt
+report*.html
+dag*.html
+
+# --- OS / editor ----------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

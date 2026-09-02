@@ -18,9 +18,10 @@ LABEL org.opencontainers.image.title="stpipe-scanpy-squidpy" \
 
 USER root
 # procps supplies `ps`, which Nextflow shells out to in order to collect per-task resource metrics.
-# Without it every task logs a warning and the execution report has empty CPU/memory columns.
+# build-essential supplies g++ for dependencies such as annoy when PyPI has no matching wheel for the
+# selected Python/platform. Without it pip falls back to a source build and the image build fails.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends procps ca-certificates \
+ && apt-get install -y --no-install-recommends procps ca-certificates build-essential \
  && rm -rf /var/lib/apt/lists/*
 USER $MAMBA_USER
 

@@ -16,10 +16,10 @@ advance until it is met, because the DoD checks are what make this defensible in
 
 | Phase | Focus | Days | Dates | Status |
 |---|---|---|---|---|
-| 0 | Environment & repo scaffold | 0 | Sun 30 Aug | `[~]` |
-| 1 | Data fetch + scRNA-seq QC + first Nextflow module | 1–2 | Mon 31 Aug – Tue 1 Sep | `[ ]` |
-| 2 | scRNA-seq clustering & annotation | 3–4 | Wed 2 – Thu 3 Sep | `[ ]` |
-| 3 | Spatial QC & spatial clustering | 5–6 | Fri 4 Sep, Mon 7 Sep | `[ ]` |
+| 0 | Environment & repo scaffold | 0 | Sun 30 Aug | `[x]` |
+| 1 | Data fetch + scRNA-seq QC + first Nextflow module | 1–2 | Mon 31 Aug – Tue 1 Sep | `[x]` |
+| 2 | scRNA-seq clustering & annotation | 3–4 | Wed 2 – Thu 3 Sep | `[x]` |
+| 3 | Spatial QC & spatial clustering | 5–6 | Fri 4 Sep, Mon 7 Sep | `[~]` |
 | 4 | Deconvolution (Tangram) + full end-to-end DAG | 7–9 | Tue 8 – Thu 10 Sep | `[ ]` |
 | 5 | Spatial statistics + HTML report | 10–11 | Fri 11 Sep, Mon 14 Sep | `[ ]` |
 | 6 | Test dataset, CI, container polish | 12–13 | Tue 15 – Wed 16 Sep | `[ ]` |
@@ -33,10 +33,10 @@ advance until it is met, because the DoD checks are what make this defensible in
 **Goal:** a repo skeleton and a working Linux toolchain, so that no phase later is blocked on installs.
 
 ### Your tasks (need admin rights / reboot)
-- [ ] Install WSL2 + Ubuntu (`wsl --install -d Ubuntu` in an **Administrator** PowerShell, then reboot)
-- [ ] Install Docker Desktop and enable **Settings → Resources → WSL Integration → Ubuntu**
-- [ ] Run `bash setup/bootstrap_wsl.sh` inside Ubuntu (installs Java, Nextflow, micromamba)
-- [ ] Verify: `nextflow -version`, `docker run hello-world`, `micromamba --version` all succeed inside WSL
+- [x] Install WSL2 + Ubuntu (`wsl --install -d Ubuntu` in an **Administrator** PowerShell, then reboot)
+- [x] Install Docker Desktop and enable **Settings → Resources → WSL Integration → Ubuntu**
+- [x] Run `bash setup/bootstrap_wsl.sh` inside Ubuntu (installs Java, Nextflow, micromamba)
+- [x] Verify: `nextflow -version`, `docker run hello-world`, `micromamba --version` all succeed inside WSL
 
 Full step-by-step instructions: [`setup/WSL_SETUP.md`](setup/WSL_SETUP.md)
 
@@ -61,20 +61,20 @@ Nextflow `work/` directory and `data/` live on the native Linux filesystem (syml
 **Goal:** one Nextflow process, fully working in Docker. This is the pattern every later module reuses,
 so getting it genuinely clean now saves days later.
 
-- [ ] Run `python bin/fetch_data.py --all` — reference `sc.h5ad` (73,260 cells) + Visium lymph node
-- [ ] Explore the reference interactively: `.obs` columns, existing cell type labels, gene ID convention, is there a mito gene set?
-- [ ] Write `bin/sc_qc.py` with `argparse` (`--input`, `--outdir`, QC thresholds as flags)
-  - [ ] `sc.pp.calculate_qc_metrics`
-  - [ ] cell/gene filtering by min counts + min genes
-  - [ ] mitochondrial fraction — **check whether mito genes are even present**, document rather than assume
-  - [ ] doublet detection (`sc.pp.scrublet`)
-  - [ ] ≥2 QC figures (violin of counts/genes/pct_mt, scatter counts-vs-genes)
-  - [ ] printed text summary of cells/genes removed
-- [ ] Run it standalone outside Nextflow and eyeball the figures
-- [ ] Build the `scanpy_squidpy` Docker image
-- [ ] Write `modules/local/sc_qc/main.nf` — **write the I/O contract comment before the process body**
-- [ ] Write a minimal `main.nf` that runs only `sc_qc`
-- [ ] `nextflow run main.nf -profile docker` succeeds
+- [x] Run `python bin/fetch_data.py --all` — reference `sc.h5ad` (73,260 cells) + Visium lymph node
+- [x] Explore the reference interactively: `.obs` columns, existing cell type labels, gene ID convention, is there a mito gene set?
+- [x] Write `bin/sc_qc.py` with `argparse` (`--input`, `--outdir`, QC thresholds as flags)
+  - [x] `sc.pp.calculate_qc_metrics`
+  - [x] cell/gene filtering by min counts + min genes
+  - [x] mitochondrial fraction — **check whether mito genes are even present**, document rather than assume
+  - [ ] doublet detection (`sc.pp.scrublet`) — deferred: too slow on the full 73k-cell reference
+  - [x] ≥2 QC figures (violin of counts/genes/pct_mt, scatter counts-vs-genes)
+  - [x] printed text summary of cells/genes removed
+- [x] Run it standalone outside Nextflow and eyeball the figures
+- [x] Build the `scanpy_squidpy` Docker image
+- [x] Write `modules/local/sc_qc/main.nf` — **write the I/O contract comment before the process body**
+- [x] Write a minimal `main.nf` that runs only `sc_qc`
+- [x] `nextflow run main.nf -profile docker` succeeds
 
 **DoD:** `python bin/sc_qc.py --input ... --outdir ...` produces a filtered h5ad + ≥2 QC figures + a text
 summary; the same script runs through Nextflow in Docker and lands outputs in `results/`.
@@ -91,11 +91,11 @@ summary; the same script runs through Nextflow in Docker and lands outputs in `r
 
 **Goal:** reproduce the reference's cell types with your own pipeline, then *validate* against the curated labels.
 
-- [ ] `bin/sc_cluster_annotate.py`: normalize_total → log1p → HVGs → PCA → neighbors → Leiden → UMAP
-- [ ] Marker gene ranking (`sc.tl.rank_genes_groups`) + dotplot for canonical lineage markers
-- [ ] Agreement table: your Leiden clusters × provided cell type labels (crosstab / normalised confusion matrix)
-- [ ] Outputs: annotated h5ad, UMAP by cell type, UMAP by Leiden cluster, marker dotplot, agreement TSV
-- [ ] `modules/local/sc_cluster_annotate/main.nf`, wired downstream of `sc_qc`
+- [x] `bin/sc_cluster_annotate.py`: normalize_total → log1p → HVGs → PCA → neighbors → Leiden → UMAP
+- [x] Marker gene ranking (`sc.tl.rank_genes_groups`) + dotplot for canonical lineage markers
+- [x] Agreement table: your Leiden clusters × provided cell type labels (crosstab / normalised confusion matrix)
+- [x] Outputs: annotated h5ad, UMAP by cell type, UMAP by Leiden cluster, marker dotplot, agreement TSV
+- [x] `modules/local/sc_cluster_annotate/main.nf`, wired downstream of `sc_qc`
 - [ ] Note mismatches in `docs/learning-log.md` — disagreement is a real result, not a failure
 
 **DoD:** UMAP visually separates B / T / myeloid / stromal lineages; agreement table exists and mismatches

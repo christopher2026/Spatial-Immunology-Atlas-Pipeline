@@ -16,8 +16,10 @@ LABEL org.opencontainers.image.title="stpipe-tangram" \
       org.opencontainers.image.licenses="MIT"
 
 USER root
+# scanpy's optional nearest-neighbour dependencies can fall back to a source build; keep the
+# deconvolution image reproducible on platforms where PyPI has no matching wheel.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends procps ca-certificates \
+ && apt-get install -y --no-install-recommends procps ca-certificates build-essential \
  && rm -rf /var/lib/apt/lists/*
 USER $MAMBA_USER
 

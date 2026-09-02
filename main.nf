@@ -7,7 +7,7 @@
     node to spatially map immune cell types, identify tissue niches, and characterise
     cell-cell communication.
 
-    Github: https://github.com/OWNER/spatial-immune-atlas
+    Github: https://github.com/christopher2026/Spatial-Immune-Atlas-Pipeline
 ----------------------------------------------------------------------------------------
 
     THE DAG
@@ -41,9 +41,9 @@ nextflow.enable.dsl = 2
 */
 
 // Phase 1
-// include { SC_QC }               from './modules/local/sc_qc/main.nf'
+include { SC_QC }               from './modules/local/sc_qc/main.nf'
 // Phase 2
-// include { SC_CLUSTER_ANNOTATE } from './modules/local/sc_cluster_annotate/main.nf'
+include { SC_CLUSTER_ANNOTATE } from './modules/local/sc_cluster_annotate/main.nf'
 // Phase 3
 // include { SPATIAL_QC }          from './modules/local/spatial_qc/main.nf'
 // include { SPATIAL_CLUSTER }     from './modules/local/spatial_cluster/main.nf'
@@ -130,12 +130,12 @@ workflow {
     // ------------------------------------------------------------------------------------
     // PHASE 1 - scRNA-seq QC
     // ------------------------------------------------------------------------------------
-    // SC_QC( ch_sc_reference )
+    SC_QC( ch_sc_reference )
 
     // ------------------------------------------------------------------------------------
     // PHASE 2 - scRNA-seq clustering and annotation
     // ------------------------------------------------------------------------------------
-    // SC_CLUSTER_ANNOTATE( SC_QC.out.h5ad )
+    SC_CLUSTER_ANNOTATE( SC_QC.out.h5ad )
 
     // ------------------------------------------------------------------------------------
     // PHASE 3 - spatial QC and clustering
@@ -155,14 +155,6 @@ workflow {
     // SPATIAL_STATS( DECONVOLUTION.out.h5ad )
     // REPORT( ... collected figures and tables ... )
 
-    log.warn "No modules are wired in yet - see PROJECT_PLAN.md Phase 1 for the next step."
+    log.info "Phase 1: SC_QC is wired; later modules will be added after this checkpoint passes."
 }
 
-workflow.onComplete {
-    log.info """
-    Pipeline ${workflow.success ? 'completed successfully' : 'FAILED'}
-    Duration : ${workflow.duration}
-    Results  : ${params.outdir}
-    Run info : ${params.outdir}/pipeline_info
-    """.stripIndent()
-}

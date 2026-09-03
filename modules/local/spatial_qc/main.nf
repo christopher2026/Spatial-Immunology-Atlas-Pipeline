@@ -1,6 +1,5 @@
 /*
  * MODULE: SPATIAL_QC
- * PHASE:  3  (Days 5-6)
  *
  * I/O CONTRACT
  *
@@ -24,6 +23,31 @@
  *   - this mixing is precisely why deconvolution (Phase 4) is necessary at all
  * Conflating spots and cells is the most common beginner error in spatial transcriptomics. Say this
  * out loud in the report and in interviews - it signals rigor cheaply.
- *
- * TODO Phase 3: implement.
  */
+
+ process SPATIAL_QC {
+    tag "$meta.id"
+    label 'process_medium'
+    label 'container_scanpy'
+    publishDir "${params.outdir}/spatial_qc", mode: params.publish_dir_mode
+
+    input:
+    tuple val(meta), path(visium_dir)
+
+    output:
+    tuple val(meta), path("*.filtered.h5ad"), emit: h5ad
+    tuple val(meta), path("figures/*.png"), emit: figures
+
+    script:
+    def output_h5ad = "${meta.id}.filtered.h5ad"
+
+    """
+    python "${projectDir}/bin/spatial_qc.py" \
+        --input "$visium_dir" \
+        --output "$output_h5ad" \
+        --figures-dir figures \
+        --min-counts ${params.sp_min_counts} \
+        --min-genes ${params.sp_min_genes} \
+        --max-pct-mt ${params.sp_max_pct_mt}
+    """
+ }

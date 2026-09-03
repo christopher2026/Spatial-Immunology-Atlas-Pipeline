@@ -113,12 +113,12 @@ are documented with a hypothesis for each.
 
 **Goal:** the spatial half of the input, plus your first tissue-overlay figure.
 
-- [ ] `bin/spatial_qc.py` — spot-level QC (**spots ≠ cells**; state this explicitly in the report)
-- [ ] `bin/spatial_cluster.py` — normalize, HVG, PCA, neighbors, Leiden on spots
-- [ ] `squidpy.pl.spatial_scatter` cluster overlay on the H&E image
-- [ ] `modules/local/spatial_qc/main.nf` and `modules/local/spatial_cluster/main.nf`
-- [ ] `subworkflows/local/preprocess.nf` wiring `sc_qc` + `spatial_qc`
-- [ ] Compare your cluster map against known lymph node anatomy — do you see follicle-shaped regions?
+- [x] `bin/spatial_qc.py` — spot-level QC (**spots ≠ cells**; state this explicitly in the report)
+- [x] `bin/spatial_cluster.py` — normalize, HVG, PCA, neighbors, Leiden on spots
+- [x] `squidpy.pl.spatial_scatter` cluster overlay on the H&E image
+- [x] `modules/local/spatial_qc/main.nf` and `modules/local/spatial_cluster/main.nf`
+- [x] `subworkflows/local/preprocess.nf` wiring `sc_qc` + `spatial_qc`
+- [x] Compare your cluster map against known lymph node anatomy — do you see follicle-shaped regions?
 
 **DoD:** spatial cluster plot overlaid on H&E, with clusters that correspond to plausible anatomical regions.
 

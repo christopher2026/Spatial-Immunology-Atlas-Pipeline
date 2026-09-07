@@ -19,7 +19,7 @@ advance until it is met, because the DoD checks are what make this defensible in
 | 0 | Environment & repo scaffold | 0 | Sun 30 Aug | `[x]` |
 | 1 | Data fetch + scRNA-seq QC + first Nextflow module | 1–2 | Mon 31 Aug – Tue 1 Sep | `[x]` |
 | 2 | scRNA-seq clustering & annotation | 3–4 | Wed 2 – Thu 3 Sep | `[x]` |
-| 3 | Spatial QC & spatial clustering | 5–6 | Fri 4 Sep, Mon 7 Sep | `[~]` |
+| 3 | Spatial QC & spatial clustering | 5–6 | Fri 4 Sep, Mon 7 Sep | `[x]` |
 | 4 | Deconvolution (Tangram) + full end-to-end DAG | 7–9 | Tue 8 – Thu 10 Sep | `[ ]` |
 | 5 | Spatial statistics + HTML report | 10–11 | Fri 11 Sep, Mon 14 Sep | `[ ]` |
 | 6 | Test dataset, CI, container polish | 12–13 | Tue 15 – Wed 16 Sep | `[ ]` |

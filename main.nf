@@ -43,7 +43,7 @@ nextflow.enable.dsl = 2
 // Phases 1-3
 include { PREPROCESS }          from './subworkflows/local/preprocess.nf'
 // Phase 4
-// include { DECONVOLUTION }       from './modules/local/deconvolution/main.nf'
+include { DECONVOLUTION }       from './modules/local/deconvolution/main.nf'
 // Phase 5
 // include { SPATIAL_STATS }       from './modules/local/spatial_stats/main.nf'
 // include { REPORT }              from './modules/local/report/main.nf'
@@ -129,8 +129,10 @@ workflow {
     // ------------------------------------------------------------------------------------
     // PHASE 4 - deconvolution. First process that joins the two branches of the DAG.
     // ------------------------------------------------------------------------------------
-    // ch_deconv_in = SC_CLUSTER_ANNOTATE.out.h5ad.join( SPATIAL_CLUSTER.out.h5ad )
-    // DECONVOLUTION( ch_deconv_in )
+    ch_deconv_in = PREPROCESS.out.sc_h5ad
+        .join(PREPROCESS.out.sp_h5ad)
+
+    DECONVOLUTION( ch_deconv_in )
 
     // ------------------------------------------------------------------------------------
     // PHASE 5 - spatial statistics and report
@@ -138,6 +140,5 @@ workflow {
     // SPATIAL_STATS( DECONVOLUTION.out.h5ad )
     // REPORT( ... collected figures and tables ... )
 
-    log.info "Phases 1-3 preprocessing are wired; deconvolution is the next stage."
 }
 

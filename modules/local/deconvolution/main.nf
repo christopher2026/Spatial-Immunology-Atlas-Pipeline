@@ -36,3 +36,40 @@
  *
  * TODO Phase 4: implement. Get it working standalone on REAL data before containerising.
  */
+ process DECONVOLUTION {
+    tag "$meta.id"
+    label 'process_high_memory'
+    label 'container_tangram'
+    publishDir "${params.outdir}/tangram", mode: params.publish_dir_mode
+
+    input:
+    tuple val(meta), path(sc_h5ad), path(sp_h5ad)
+
+    output:
+    tuple val(meta), path("*deconvolved.h5ad"), emit: h5ad
+    tuple val(meta), path("*proportions.tsv"), emit: props
+    tuple val(meta), path("figures/*.png"), emit: figures
+    tuple val(meta), path("*shared_genes.tsv"), emit: genes
+    path "versions.yml", emit: versions
+
+    script:
+    """
+    python "${projectDir}/bin/run_tangram.py" \
+        --sc-input "$sc_h5ad" \
+        --spatial-input "$sp_h5ad" \
+        --outdir "." \
+        --mode ${params.tangram_mode} \
+        --num-epochs ${params.tangram_num_epochs} \
+        --device ${params.tangram_device} \
+        --density-prior ${params.tangram_density_prior} \
+        --celltype-key "${params.sc_celltype_key}" 
+
+    printf '%s\n' \
+        'deconvolution:' \
+        "  scanpy: \$(python -c 'import scanpy; print(scanpy.__version__)')" \
+        "  torch: \$(python -c 'import torch; print(torch.__version__)')" \
+        "  tangram: \$(python -c 'import tangram; print(tangram.__version__)')" \
+        > versions.yml
+    """
+ }
+

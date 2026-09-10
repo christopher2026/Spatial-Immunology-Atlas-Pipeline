@@ -34,3 +34,34 @@
  *
  * TODO Phase 5: implement.
  */
+process SPATIAL_STATS {
+    tag "$meta.id"
+    label 'process_medium'
+    label 'container_scanpy'
+    publishDir "${params.outdir}/spatial_stats", mode: params.publish_dir_mode
+
+    input:
+    tuple val(meta), path(h5ad)
+
+    output:
+    tuple val(meta), path("figures/*.png"), emit: figures
+    tuple val(meta), path("*nhood_enrichment.tsv"), emit: nhood
+    tuple val(meta), path("moran.tsv"), emit: moran
+    path "versions.yml", emit: versions
+
+    script:
+    """
+    python "${projectDir}/bin/spatial_stats.py" \
+        --spatial-input "$h5ad" \
+        --outdir "." \
+        --cluster-key "spatial_leiden" \
+        --nhood-n-perms ${params.nhood_n_perms} \
+        --moran-n-perms ${params.moran_n_perms}
+
+    printf '%s\n' \
+        'spatial_stats:' \
+        "  scanpy: \$(python -c 'import scanpy; print(scanpy.__version__)')" \
+        "  squidpy: \$(python -c 'import squidpy; print(squidpy.__version__)')" \
+        > versions.yml
+    """
+}

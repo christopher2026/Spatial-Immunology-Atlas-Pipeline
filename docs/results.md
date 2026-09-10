@@ -66,7 +66,7 @@ suspicious.
 
 ## Spatial statistics
 
-*Not yet run. Neighborhood enrichment and Moran's I will be added in Phase 5.*
+*IGHG1/2 are IgG constant region transcripts (plasma cell/medully programmes) and are spatially clumped rather than a follicle ring. CCL21 (*T-zone chemokine from stromal/FRC cells) *is in the surrounding paracortex and is complementary to the FDCSP gene, which is Follicular dendretic cell products and should sit in follicle/GC patches.* 
 
 ## Limitations
 

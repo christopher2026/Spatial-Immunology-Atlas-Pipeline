@@ -7,7 +7,7 @@
 > This is one of the highest-value documents in the repo. A PI or hiring manager will actually read
 > it, and it is the fastest way to demonstrate that you understand what your own pipeline did.
 
-*Status: updated through Phase 4. Spatial statistics will be added after Phase 5.*
+*Status: updated through Phase 5 (spatial statistics and HTML report).*
 
 ---
 
@@ -71,22 +71,55 @@ metadata.
 
 ## Spatial statistics
 
-*Not yet run. To be completed in Phase 5.*
+Neighbourhood enrichment and Moran’s I were computed on the deconvolved Visium AnnData object
+(4,025 spots) with Squidpy, using the **spatial** neighbour graph already stored in
+`obsp['spatial_connectivities']` from Phase 3. The expression neighbour graph was not used for
+co-occurrence tests.
+
+Neighbourhood enrichment (`squidpy.gr.nhood_enrichment`) treated `spatial_leiden` as the categorical
+spot label (10 observed clusters, labels 0–9). Cluster labels were permuted on the fixed spatial graph
+1,000 times in the intended production setting (20 permutations were used only as a smoke test).
+Z-scores were written to `nhood_enrichment.tsv` and plotted as a heatmap. A large positive z-score
+means two labels occupy neighbouring spots more often than the permutation null; a large negative
+z-score means they occupy neighbouring spots less often than chance.
+
+Moran’s I (`squidpy.gr.spatial_autocorr`, mode Moran) was restricted to the 2,000 highly variable
+genes to keep permutation cost tractable. Production runs used 100 permutations per gene. Genes were
+ranked by I descending (`moran.tsv`). The top genes included `IGHG1`, `CCL21`, `FDCSP`, and `IGHG2`.
+Those four were plotted on the hires H&E image with `squidpy.pl.spatial_scatter`. Ligand–receptor
+analysis (`squidpy.gr.ligrec`) was not run.
+
+The spatial-statistics process used the `stpipe-scanpy:0.1.0` image and took the deconvolved `.h5ad`
+from the Tangram process.
+
+## Report
+
+A Jinja2 template (`assets/report_template.html.j2`) plus `bin/make_report.py` assembled published
+PNGs and selected TSVs into a single `report.html`. Figures were embedded as base64 data URIs so the
+file has no relative image paths and no CDN. The Nextflow `REPORT` process ran in `stpipe-report:0.1.0`
+(Jinja2 and pandas only), staging figure/TSV artifacts rather than the large `.h5ad` files. The
+process was gated on `SPATIAL_STATS` so the HTML is produced after enrichment and Moran’s I.
 
 ## Reproducibility
 
-QC and clustering used the `stpipe-scanpy:0.1.0` image; Tangram used `stpipe-tangram:0.1.0`. The
-workflow through deconvolution is reproducible with:
+QC, clustering, and spatial statistics used `stpipe-scanpy:0.1.0`; Tangram used `stpipe-tangram:0.1.0`;
+the HTML report used `stpipe-report:0.1.0`. The full DAG through the report is reproducible with:
 
 ```bash
 nextflow run main.nf -profile docker -resume \
   --sc_run_scrublet false \
   --tangram_mode clusters \
   --tangram_num_epochs 200 \
-  --tangram_device cpu
+  --tangram_device cpu \
+  --nhood_n_perms 1000 \
+  --moran_n_perms 100
 ```
 
-Nextflow stores task work directories separately from the published results under `results/`. Runtime
+Lower `--nhood_n_perms` / `--moran_n_perms` (e.g. 20) were used for Docker smoke tests. Changing
+Tangram `--tangram_num_epochs` or `--tangram_mode` invalidates the deconvolution cache under
+`-resume`; changing only the permutation flags reruns spatial statistics on the same mapped object.
+
+Nextflow stores task work directories separately from published results under `results/`. Runtime
 provenance is written to `results/pipeline_info/` when those reports are enabled.
 
 ## Software versions

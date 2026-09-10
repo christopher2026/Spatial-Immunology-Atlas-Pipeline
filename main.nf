@@ -45,8 +45,8 @@ include { PREPROCESS }          from './subworkflows/local/preprocess.nf'
 // Phase 4
 include { DECONVOLUTION }       from './modules/local/deconvolution/main.nf'
 // Phase 5
-// include { SPATIAL_STATS }       from './modules/local/spatial_stats/main.nf'
-// include { REPORT }              from './modules/local/report/main.nf'
+include { SPATIAL_STATS }       from './modules/local/spatial_stats/main.nf'
+include { REPORT }              from './modules/local/report/main.nf'
 
 /*
 ========================================================================================
@@ -137,8 +137,15 @@ workflow {
     // ------------------------------------------------------------------------------------
     // PHASE 5 - spatial statistics and report
     // ------------------------------------------------------------------------------------
-    // SPATIAL_STATS( DECONVOLUTION.out.h5ad )
-    // REPORT( ... collected figures and tables ... )
+    SPATIAL_STATS( DECONVOLUTION.out.h5ad )
 
+    REPORT(
+        SPATIAL_STATS.out.moran,
+        SPATIAL_STATS.out.nhood.map { _meta, tsv -> tsv },
+        SPATIAL_STATS.out.figures.map { _meta, pngs -> pngs },
+        DECONVOLUTION.out.figures.map { _meta, pngs -> pngs },
+        PREPROCESS.out.figures.map { _meta, pngs -> pngs }.flatten().collect(),
+        file("${projectDir}/assets/report_template.html.j2")
+    )
 }
 

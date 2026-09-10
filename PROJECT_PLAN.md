@@ -20,8 +20,8 @@ advance until it is met, because the DoD checks are what make this defensible in
 | 1 | Data fetch + scRNA-seq QC + first Nextflow module | 1–2 | Mon 31 Aug – Tue 1 Sep | `[x]` |
 | 2 | scRNA-seq clustering & annotation | 3–4 | Wed 2 – Thu 3 Sep | `[x]` |
 | 3 | Spatial QC & spatial clustering | 5–6 | Fri 4 Sep, Mon 7 Sep | `[x]` |
-| 4 | Deconvolution (Tangram) + full end-to-end DAG | 7–9 | Tue 8 – Thu 10 Sep | `[ ]` |
-| 5 | Spatial statistics + HTML report | 10–11 | Fri 11 Sep, Mon 14 Sep | `[ ]` |
+| 4 | Deconvolution (Tangram) + full end-to-end DAG | 7–9 | Tue 8 – Thu 10 Sep | `[x]` |
+| 5 | Spatial statistics + HTML report | 10–11 | Fri 11 Sep, Mon 14 Sep | `[~]` |
 | 6 | Test dataset, CI, container polish | 12–13 | Tue 15 – Wed 16 Sep | `[ ]` |
 | 7 | Documentation & interview prep | 14–15 | Thu 17 – Fri 18 Sep | `[ ]` |
 | S | Stretch goals (only if core is done) | — | — | `[ ]` |
@@ -133,14 +133,14 @@ are documented with a hypothesis for each.
 
 **Goal:** the ML centerpiece, plus the first full end-to-end DAG run. Budget the most time here.
 
-- [ ] Get Tangram working **standalone on real (not subsampled) data first** — confirm the biology before containerising
-- [ ] Subset to shared genes between reference and spatial; handle gene-ID convention mismatch (symbols vs Ensembl)
-- [ ] `tangram.mapping_utils.map_cells_to_space` (CPU is fine at this scale)
-- [ ] Project cell type probabilities onto spots → per-spot cell type proportion matrix (TSV)
-- [ ] Spatial plots for key types: germinal centre B cells, follicular dendritic cells, CD4 T, CD8 T
-- [ ] Build `tangram.Dockerfile`; write `modules/local/deconvolution/main.nf`
-- [ ] Wire the **full** `main.nf` DAG: sc_qc → sc_cluster_annotate ↘ deconvolution ↙ spatial_qc → spatial_cluster
-- [ ] Validate visually against published cell2location Fig. 4 on the same dataset; write the comparison into `docs/results.md`
+- [x] Get Tangram working **standalone on real (not subsampled) data first** — confirm the biology before containerising
+- [x] Subset to shared genes between reference and spatial; handle gene-ID convention mismatch (symbols vs Ensembl)
+- [x] `tangram.mapping_utils.map_cells_to_space` (CPU is fine at this scale)
+- [x] Project cell type probabilities onto spots → per-spot cell type proportion matrix (TSV)
+- [x] Spatial plots for key types: germinal centre B cells, follicular dendritic cells, CD4 T, CD8 T
+- [x] Build `tangram.Dockerfile`; write `modules/local/deconvolution/main.nf`
+- [x] Wire the **full** `main.nf` DAG: sc_qc → sc_cluster_annotate ↘ deconvolution ↙ spatial_qc → spatial_cluster
+- [x] Validate visually against published cell2location Fig. 4 on the same dataset; write the comparison into `docs/results.md`
 
 **DoD:** full pipeline runs start-to-finish on real data; B-cell types land in follicle-shaped regions and
 T-cell types in the surrounding paracortex.

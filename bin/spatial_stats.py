@@ -28,8 +28,14 @@ def parse_args():
     )
     parser.add_argument("--spatial-input", type=Path, required=True, help="Deconvolved spatial AnnData file.")
     parser.add_argument("--outdir", type=Path, required=True, help="Directory for spatial stats outputs.")
-    parser.add_argument("--cluster-key", default="spatial_leiden", help="obs column with categorical spot labels for neighbourhood enrichment.")
-    parser.add_argument("--nhood-n-perms", type=int, default=1000, help="Permutations for neighbourhood enrichment.")
+    parser.add_argument(
+        "--cluster-key",
+        default="spatial_leiden",
+        help="obs column with categorical spot labels for neighbourhood enrichment.",
+    )
+    parser.add_argument(
+        "--nhood-n-perms", type=int, default=1000, help="Permutations for neighbourhood enrichment."
+    )
     parser.add_argument("--moran-n-perms", type=int, default=100, help="Permutations for Moran's I.")
     parser.add_argument("--n-top-svgs", type=int, default=4, help="Number of top Moran genes to plot.")
     return parser.parse_args()
@@ -50,8 +56,7 @@ def validate_inputs(adata, cluster_key):
 
     if cluster_key not in adata.obs.columns:
         raise KeyError(
-            f"Cluster column '{cluster_key}' not found. "
-            f"Available columns: {list(adata.obs.columns)}"
+            f"Cluster column '{cluster_key}' not found. Available columns: {list(adata.obs.columns)}"
         )
 
     labels = adata.obs[cluster_key]
@@ -61,8 +66,7 @@ def validate_inputs(adata, cluster_key):
     n_clusters = labels.nunique(dropna=True)
     if n_clusters < 2:
         raise ValueError(
-            f"Neighbourhood enrichment needs at least two labels; "
-            f"'{cluster_key}' has {n_clusters}."
+            f"Neighbourhood enrichment needs at least two labels; '{cluster_key}' has {n_clusters}."
         )
 
     if "spatial" not in adata.obsm:
@@ -71,8 +75,7 @@ def validate_inputs(adata, cluster_key):
     coordinates = np.asarray(adata.obsm["spatial"])
     if coordinates.shape[0] != adata.n_obs:
         raise ValueError(
-            "The number of spatial coordinate rows does not match "
-            "the number of spatial observations."
+            "The number of spatial coordinate rows does not match the number of spatial observations."
         )
     if not np.isfinite(coordinates).all():
         raise ValueError("Spatial coordinates contain NaN or infinite values.")
@@ -82,8 +85,6 @@ def validate_inputs(adata, cluster_key):
             "Spatial neighbour graph not found in adata.obsp['spatial_connectivities']. "
             "Do not use expression_neighbors; rebuild spatial neighbours if needed."
         )
-
-    return None
 
 
 def run_nhood_enrichment(adata, cluster_key, n_perms, outdir):
@@ -140,19 +141,18 @@ def run_moran(adata, genes, n_perms, outdir):
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    sq.gr.spatial_autocorr(adata, connectivity_key="spatial_connectivities", genes=genes, mode="moran", n_perms=n_perms)
+    sq.gr.spatial_autocorr(
+        adata, connectivity_key="spatial_connectivities", genes=genes, mode="moran", n_perms=n_perms
+    )
 
     if "moranI" not in adata.uns:
         raise KeyError(
-            "Squidpy did not write adata.uns['moranI']. "
-            f"Available uns keys: {list(adata.uns.keys())}"
+            f"Squidpy did not write adata.uns['moranI']. Available uns keys: {list(adata.uns.keys())}"
         )
 
     moran_table = pd.DataFrame(adata.uns["moranI"]).copy()
     if "I" not in moran_table.columns:
-        raise KeyError(
-            f"moranI table has no 'I' column. Columns: {list(moran_table.columns)}"
-        )
+        raise KeyError(f"moranI table has no 'I' column. Columns: {list(moran_table.columns)}")
 
     moran_table = moran_table.sort_values("I", ascending=False)
     tsv_path = outdir / "moran.tsv"

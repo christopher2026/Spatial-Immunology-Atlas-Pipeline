@@ -34,13 +34,13 @@ def preprocess_spots(adata, n_hvg: int, n_pcs: int):
     sc.pp.normalize_total(adata, target_sum=10_000)
     sc.pp.log1p(adata)
 
-    #Preserve the normalized full-gene matrix
+    # Preserve the normalized full-gene matrix
     adata.raw = adata
 
     sc.pp.highly_variable_genes(
-    adata,
-    n_top_genes=n_hvg,
-    flavor="seurat",
+        adata,
+        n_top_genes=n_hvg,
+        flavor="seurat",
     )
     sc.tl.pca(
         adata,
@@ -79,7 +79,7 @@ def cluster_spots(adata, n_neighbors: int, resolution: float):
         random_state=0,
     )
 
-    #Seperate graph based on physical spot locations
+    # Seperate graph based on physical spot locations
     sq.gr.spatial_neighbors(adata)
 
     print("Number of spatial clusters:", adata.obs["spatial_leiden"].nunique())
@@ -89,7 +89,7 @@ def cluster_spots(adata, n_neighbors: int, resolution: float):
 
 def make_spatial_plot(adata, output_dir: Path) -> None:
     """Save the spot clusters over the Visium tissue image."""
-    
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     sq.pl.spatial_scatter(
@@ -110,41 +110,32 @@ def make_spatial_plot(adata, output_dir: Path) -> None:
 
 def main() -> int:
     """Run the complete Visium clustering workflow."""
-    
+
     args = parse_args()
 
     if not args.input.exists():
-        raise FileNotFoundError(
-            f"Input file does not exist: {args.input}"
-        )
+        raise FileNotFoundError(f"Input file does not exist: {args.input}")
 
-    args.output.parent.mkdir(parents=True,exist_ok=True)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
 
-    figures_dir = (
-        args.figures_dir 
-        or args.output.parent / "figures"
-        )
+    figures_dir = args.figures_dir or args.output.parent / "figures"
 
     adata = sc.read_h5ad(args.input)
 
     if "spatial" not in adata.obsm:
-        raise ValueError(
-            "Input is missing spatial coordinates in adata.obsm['spatial']"
-        )
+        raise ValueError("Input is missing spatial coordinates in adata.obsm['spatial']")
 
     adata = preprocess_spots(adata, args.n_hvg, args.n_pcs)
     adata = cluster_spots(adata, args.n_neighbors, args.resolution)
-    
+
     make_spatial_plot(adata, figures_dir)
     adata.write_h5ad(args.output)
 
     print(f"Saved clustered data: {args.output}")
     print(f"Saved figures: {figures_dir}")
-    print(
-        f"Final data: "
-        f"{adata.n_obs:,} spots x {adata.n_vars:,} genes"
-    )
+    print(f"Final data: {adata.n_obs:,} spots x {adata.n_vars:,} genes")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

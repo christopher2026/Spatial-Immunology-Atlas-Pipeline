@@ -16,14 +16,12 @@ import argparse
 from pathlib import Path
 
 import matplotlib
+import numpy as np
+import scanpy as sc
+import tangram as tg
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from scipy import sparse
-
-import tangram as tg
-import scanpy as sc
-import numpy as np
 
 # Exact Subset labels from the reference; used for the first anatomical figures.
 KEY_CELL_TYPES = (
@@ -35,17 +33,25 @@ KEY_CELL_TYPES = (
 )
 
 
-
 def parse_args():
     """Parse command-line options for the Tangram mapping run."""
     parser = argparse.ArgumentParser(description="Map scRNA-seq cell types onto Visium spots with Tangram.")
 
     parser.add_argument("--spatial-input", type=Path, required=True, help="Clustered spatial AnnData file.")
-    parser.add_argument("--sc-input", type=Path, required=True, help="Annotated scRNA-seq AnnData file.")  
+    parser.add_argument("--sc-input", type=Path, required=True, help="Annotated scRNA-seq AnnData file.")
     parser.add_argument("--outdir", type=Path, required=True, help="Directory for Tangram outputs.")
-    parser.add_argument("--celltype-key", default="Subset", help="Reference obs column containing cell-type labels.")
-    parser.add_argument("--min-shared-genes", type=int, default=1000, help="Fail if fewer shared genes remain.")    
-    parser.add_argument("--exclude-prefix", action="append", default=[], help="Gene prefix to exclude; may be supplied repeatedly.")
+    parser.add_argument(
+        "--celltype-key", default="Subset", help="Reference obs column containing cell-type labels."
+    )
+    parser.add_argument(
+        "--min-shared-genes", type=int, default=1000, help="Fail if fewer shared genes remain."
+    )
+    parser.add_argument(
+        "--exclude-prefix",
+        action="append",
+        default=[],
+        help="Gene prefix to exclude; may be supplied repeatedly.",
+    )
     parser.add_argument("--mode", default="cells", choices=["cells", "clusters"])
     parser.add_argument("--num-epochs", type=int, default=1000)
     parser.add_argument("--device", default="cpu")
@@ -87,16 +93,15 @@ def validate_inputs(adata_sc, adata_sp, celltype_key):
 
     if adata_sp.n_obs == 0 or adata_sp.n_vars == 0:
         raise ValueError("The spatial AnnData object is empty")
-    
+
     if celltype_key not in adata_sc.obs.columns:
         raise KeyError(
-            f"Cell-type column '{celltype_key}' not found. "
-            f"Available columns: {list(adata_sc.obs.columns)}"
+            f"Cell-type column '{celltype_key}' not found. Available columns: {list(adata_sc.obs.columns)}"
         )
 
     if "spatial" not in adata_sp.obsm:
         raise KeyError("Spatial coordinates not found in adata_sp.obsm['spatial']")
-    
+
     if not adata_sc.var_names.is_unique:
         raise ValueError("Reference gene names are not unique.")
 
@@ -115,36 +120,26 @@ def validate_inputs(adata_sc, adata_sp, celltype_key):
 
     if coordinates.shape[0] != adata_sp.n_obs:
         raise ValueError(
-            "The number of spatial coordinate rows does not match "
-            "the number of spatial observations."
+            "The number of spatial coordinate rows does not match the number of spatial observations."
         )
 
     if coordinates.ndim != 2 or coordinates.shape[1] < 2:
-        raise ValueError(
-            "Spatial coordinates must be a two-dimensional array "
-            "with at least two columns."
-        )
-    
+        raise ValueError("Spatial coordinates must be a two-dimensional array with at least two columns.")
+
     if not np.isfinite(coordinates).all():
         raise ValueError("Spatial coordinates contain NaN or infinite values")
-
-    return None
 
 
 def get_shared_genes(adata_sc, adata_sp, exclude_prefixes):
     """Return sorted shared genes after optional prefix filtering."""
     shared_genes = np.intersect1d(adata_sc.var_names, adata_sp.var_names)
 
-    normalized_prefixes = tuple(
-        prefix.upper() for prefix in exclude_prefixes
-    )
+    normalized_prefixes = tuple(prefix.upper() for prefix in exclude_prefixes)
 
     if normalized_prefixes:
-        shared_genes = np.array([
-            gene
-            for gene in shared_genes
-            if not gene.upper().startswith(normalized_prefixes)
-        ])
+        shared_genes = np.array(
+            [gene for gene in shared_genes if not gene.upper().startswith(normalized_prefixes)]
+        )
 
     return shared_genes
 
@@ -162,9 +157,10 @@ def write_shared_genes(shared_genes, outdir):
 
     return output_path
 
+
 def run_mapping(adata_sc, adata_sp, celltype_key, mode, num_epochs, device, density_prior):
     """Learn a Tangram mapping from reference cells onto spatial spots."""
-    ad_map = tg.map_cells_to_space(
+    return tg.map_cells_to_space(
         adata_sc,
         adata_sp,
         mode=mode,
@@ -173,7 +169,7 @@ def run_mapping(adata_sc, adata_sp, celltype_key, mode, num_epochs, device, dens
         device=device,
         density_prior=density_prior,
     )
-    return ad_map
+
 
 def plot_celltype_maps(adata_sp, cell_types, outdir):
     """Write one spatial proportion map per selected cell type."""
@@ -184,9 +180,7 @@ def plot_celltype_maps(adata_sp, cell_types, outdir):
 
     for cell_type in cell_types:
         if cell_type not in props.columns:
-            raise KeyError(
-                f"{cell_type} not in proportion table: {list(props.columns)}"
-            )
+            raise KeyError(f"{cell_type} not in proportion table: {list(props.columns)}")
 
         adata_sp.obs[cell_type] = props[cell_type].to_numpy()
 
@@ -195,6 +189,7 @@ def plot_celltype_maps(adata_sp, cell_types, outdir):
         plt.savefig(figdir / f"{safe_name}.png", dpi=150, bbox_inches="tight")
         plt.close()
         print("Wrote", figdir / f"{safe_name}.png")
+
 
 def main():
     """Run input loading and validation for the Tangram workflow."""
@@ -207,12 +202,11 @@ def main():
     print("Spatial shape:", adata_sp.shape)
 
     shared_genes = get_shared_genes(adata_sc, adata_sp, args.exclude_prefix)
-    
+
     if len(shared_genes) < args.min_shared_genes:
         raise ValueError(
-            f"Only {len(shared_genes)} shared genes remain; "
-            f"minimum required is {args.min_shared_genes}."
-            )
+            f"Only {len(shared_genes)} shared genes remain; minimum required is {args.min_shared_genes}."
+        )
 
     shared_genes_path = write_shared_genes(shared_genes, args.outdir)
 
@@ -234,10 +228,10 @@ def main():
     #         sp_nonzero = adata_sp.X[:, sp_index].getnnz()
     #     else:
     #         sp_nonzero = np.count_nonzero(adata_sp.X[:, sp_index])
-        
+
     #     nonzero_counts[gene] = (sc_nonzero, sp_nonzero)
 
-    #Tanagram Preprocessing
+    # Tanagram Preprocessing
     tg.pp_adatas(adata_sc, adata_sp, genes=shared_genes, gene_to_lowercase=False)
 
     print("Tanagram preprocessing complete")
@@ -246,12 +240,6 @@ def main():
 
     print("Tangram training genes:", len(training_genes))
     print("Shared genes excluded by Tangram", len(shared_genes) - len(training_genes))
-
-    excluded_genes = sorted(set(shared_genes) - set(training_genes))
-
-    # for gene in excluded_genes:
-    #     sc_nonzero, sp_nonzero = nonzero_counts[gene]
-    #     print(f"{gene}\tsc_nonzero={sc_nonzero}\tspatial_nonzero={sp_nonzero}")
 
     if args.map_input is not None:
         if not args.map_input.is_file():
@@ -291,6 +279,7 @@ def main():
     cell_types = args.plot_cell_type or list(KEY_CELL_TYPES)
     plot_celltype_maps(adata_sp, cell_types, args.outdir)
     adata_sp.write_h5ad(args.outdir / "spatial.deconvolved.h5ad")
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -64,6 +64,7 @@ def parse_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
+
 def load_visium(input_dir: Path):
     """Load a Visium sample directory into an AnnData object."""
     if not input_dir.exists():
@@ -81,18 +82,17 @@ def load_visium(input_dir: Path):
     print(f"Loaded Visium data: {adata.n_obs:,} spots x {adata.n_vars:,} genes")
     return adata
 
+
 def calculate_qc(adata):
     """Calculate spot-level count, gene, tissue, and mitochondrial QC metrics."""
 
-    adata.var["mt"] = (
-        adata.var_names.str.upper().str.startswith(("MT-","MT."))
-    )
+    adata.var["mt"] = adata.var_names.str.upper().str.startswith(("MT-", "MT."))
 
     has_mito = bool(adata.var["mt"].any())
 
     sc.pp.calculate_qc_metrics(
         adata,
-        qc_vars = ["mt"] if has_mito else [],
+        qc_vars=["mt"] if has_mito else [],
         inplace=True,
         log1p=False,
     )
@@ -103,10 +103,7 @@ def calculate_qc(adata):
     else:
         print("Mitochondrial QC metrics calculated.")
 
-    print(
-    f"QC metrics calculated for "
-    f"{adata.n_obs:,} spots and {adata.n_vars:,} genes."
-    )
+    print(f"QC metrics calculated for {adata.n_obs:,} spots and {adata.n_vars:,} genes.")
 
     return adata
 
@@ -116,28 +113,25 @@ def filter_spots(adata, min_counts: int, min_genes: int, max_pct_mt: float):
 
     initial_spots = adata.n_obs
 
-    tissue_mask = adata.obs["in_tissue"].astype(str).isin(
-        ["1","True","true"]
-    )
+    tissue_mask = adata.obs["in_tissue"].astype(str).isin(["1", "True", "true"])
 
     adata = adata[tissue_mask].copy()
     spots_after_tissue = adata.n_obs
-    
+
     sc.pp.filter_cells(adata, min_counts=min_counts)
 
     sc.pp.filter_cells(adata, min_genes=min_genes)
 
     if adata.var["mt"].any():
-        adata = adata[
-            adata.obs["pct_counts_mt"] <= max_pct_mt
-        ].copy()
+        adata = adata[adata.obs["pct_counts_mt"] <= max_pct_mt].copy()
 
     print(f"Initial spots: {initial_spots:,}")
     print(f"On-tissue spots: {spots_after_tissue:,}")
     print(f"Final spots: {adata.n_obs:,}")
     print(f"Spots removed: {initial_spots - adata.n_obs:,}")
-    
+
     return adata
+
 
 def save_qc_figures(adata, output_dir: Path) -> None:
     """Save diagnostic plots showing Visium spot quality."""
@@ -146,7 +140,7 @@ def save_qc_figures(adata, output_dir: Path) -> None:
 
     sc.pl.violin(
         adata,
-        ["total_counts","n_genes_by_counts","pct_counts_mt"],
+        ["total_counts", "n_genes_by_counts", "pct_counts_mt"],
         jitter=0.2,
         multi_panel=True,
         show=False,
@@ -163,22 +157,18 @@ def save_qc_figures(adata, output_dir: Path) -> None:
     plt.savefig(output_dir / "spatial_qc_counts.png", dpi=150, bbox_inches="tight")
     plt.close()
 
+
 def main() -> int:
     """Run the complete Visium QC workflow."""
 
     args = parse_args()
 
     if not args.input.exists():
-        raise FileNotFoundError(
-            f"Visium directory does not exist: {args.input}"
-        )
-    
+        raise FileNotFoundError(f"Visium directory does not exist: {args.input}")
+
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
-    figures_dir = (
-        args.figures_dir
-        or args.output.parent / "figures"
-    )
+    figures_dir = args.figures_dir or args.output.parent / "figures"
 
     adata = load_visium(args.input)
     adata = calculate_qc(adata)
@@ -191,14 +181,12 @@ def main() -> int:
     )
 
     adata.write_h5ad(args.output)
-    
+
     print(f"Saved filtered data: {args.output}")
     print(f"Saved figures: {figures_dir}")
-    print(
-        f"Final data: "
-        f"{adata.n_obs:,} spots x {adata.n_vars:,} genes"
-    )
+    print(f"Final data: {adata.n_obs:,} spots x {adata.n_vars:,} genes")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

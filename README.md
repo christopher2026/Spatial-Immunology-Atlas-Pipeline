@@ -1,14 +1,30 @@
 # Spatial Immune Atlas Pipeline
 
-> A reproducible Nextflow pipeline that integrates single-cell RNA-seq and spatial transcriptomics
-> data from human lymph node to spatially map immune cell types, identify tissue niches (T-cell zones,
-> B-cell follicles, germinal centres), and characterise cell-cell communication — containerised
-> end-to-end with Docker and tested in CI.
+[![CI](https://github.com/christopher2026/Spatial-Immunology-Atlas-Pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/christopher2026/Spatial-Immunology-Atlas-Pipeline/actions/workflows/ci.yml)
+[![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A524.10.0-23aa62.svg)](https://www.nextflow.io/)
+[![Docker](https://img.shields.io/badge/containers-GHCR-blue.svg)](https://github.com/christopher2026?tab=packages)
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey.svg)](LICENSE)
 
-**Status: Phase 0 — scaffold complete, modules not yet implemented.**
-Build progress and phase checklists: [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
+A Nextflow DSL2 pipeline that maps a curated scRNA-seq immune atlas onto 10x Visium human lymph node,
+then summarises spatial structure with neighbourhood enrichment and Moran’s I. Each step runs in a
+digest-pinned Docker image. GitHub Actions executes the full DAG on a committed subsample.
 
-<!-- Phase 7: add CI badge, Nextflow badge, license badge, and the key results figure here. -->
+It does **not** run ligand–receptor analysis. Production Tangram used **cluster** mode (200 epochs, CPU),
+not a fully trained cell-level map.
+
+---
+
+## Key result
+
+On `V1_Human_Lymph_Node`, Tangram put germinal-centre B cells and follicular dendritic cells in
+follicle-shaped regions and CD4 / cytotoxic CD8 T cells in the surrounding paracortex. Moran’s I on
+HVGs ranked `IGHG1`, `CCL21`, `FDCSP`, and `IGHG2` — IgG and FDC programmes versus the T-zone chemokine
+`CCL21`. That is the same B-in / T-around contrast as the cell-type maps, and it matches the anatomy
+expected for this tissue (and, in broad terms, cell2location Fig. 4 on the same sample).
+
+Full narrative, caveats, and validation checks: [`docs/results.md`](docs/results.md). After a production
+run, the standalone story is `results/report.html`. To embed a figure here, copy one Tangram spatial
+PNG (for example `FDC` or `B_GC_LZ`) into `docs/figures/` and link it below this paragraph.
 
 ---
 
@@ -16,79 +32,85 @@ Build progress and phase checklists: [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
 
 ```mermaid
 flowchart TD
-    A[scRNA-seq reference<br/>73,260 cells · 34 cell types] --> B[sc_qc<br/>QC · filtering · doublets]
-    B --> C[sc_cluster_annotate<br/>Leiden · UMAP · marker validation]
-    D[Visium slide<br/>human lymph node + H&E] --> E[spatial_qc<br/>spot-level QC]
-    E --> F[spatial_cluster<br/>Leiden on spots]
-    C --> G[deconvolution<br/>Tangram: cell types to spots]
+    A[scRNA-seq reference<br/>73,260 cells · 34 Subset labels] --> B[sc_qc]
+    B --> C[sc_cluster_annotate<br/>Leiden · UMAP · agreement table]
+    D[Visium V1_Human_Lymph_Node] --> E[spatial_qc<br/>spot-level, not cells]
+    E --> F[spatial_cluster]
+    C --> G[deconvolution<br/>Tangram clusters, 200 epochs, CPU]
     F --> G
-    G --> H[spatial_stats<br/>neighborhood enrichment · Moran's I]
-    H --> I[report<br/>standalone results.html]
+    G --> H[spatial_stats<br/>nhood enrichment · Moran I]
+    H --> I[report.html]
 ```
 
 ## Quickstart
 
-Requires Linux or WSL2 with Docker. First-time setup: [`setup/WSL_SETUP.md`](setup/WSL_SETUP.md).
+Needs Linux or WSL2, Nextflow ≥ 24.10, and Docker. First-time WSL notes: [`setup/WSL_SETUP.md`](setup/WSL_SETUP.md).
+
+**Verify a clone** (no `fetch_data`, uses `assets/test_data/`):
 
 ```bash
-# Fast subsampled smoke test — the one command to verify the pipeline works
 nextflow run main.nf -profile test,docker
-
-# Full run on the real datasets
-python bin/fetch_data.py --all --inspect
-nextflow run main.nf -profile docker
+test -s results/report.html
 ```
+
+This is what CI runs. It is a DAG smoke test (loose QC, Tangram 20 epochs), not the production biology.
+
+**Production run** (real atlas + Visium; do not change Tangram flags if you only want to rerun later steps):
+
+```bash
+python bin/fetch_data.py --all --inspect
+nextflow run main.nf -profile docker -resume \
+  --sc_run_scrublet false \
+  --tangram_mode clusters --tangram_num_epochs 200 --tangram_device cpu \
+  --nhood_n_perms 1000 --moran_n_perms 100
+```
+
+Images are `ghcr.io/christopher2026/stpipe-{scanpy,tangram,report}:0.1.0` pinned by digest in
+`nextflow.config`. Optional process test: `nf-test test tests/modules/local/sc_qc/main.nf.test`.
 
 ## Data
 
 | Dataset | Source | Scale |
 |---|---|---|
-| Visium spatial | 10x Genomics `V1_Human_Lymph_Node` | ~4,000 spots, paired H&E |
-| scRNA-seq reference | Kleshchevnikov et al., *Nat Biotechnol* 2022 (cell2location) — integrated lymph node / spleen / tonsil atlas | 73,260 cells, 34 curated cell types |
+| Visium | 10x `V1_Human_Lymph_Node` | 4,035 spots (4,025 after QC), H&E |
+| scRNA-seq | Kleshchevnikov et al., *Nat Biotechnol* 2022 | 73,260 cells, 34 `Subset` types |
 
-Both are public and fetched by [`bin/fetch_data.py`](bin/fetch_data.py). This exact pairing is used in
-the published cell2location and Tangram tutorials, which means the deconvolution result can be
-validated against a peer-reviewed figure rather than only eyeballed for plausibility.
+[`bin/fetch_data.py`](bin/fetch_data.py) downloads both. The pairing is the cell2location / Tangram tutorial
+pair, so the spatial map can be checked against a published figure.
 
-## Why human lymph node
+## Why lymph node
 
-The lymph node has textbook spatial organisation: B-cell follicles with germinal centres, surrounding
-T-cell paracortex, and medullary/stromal regions. That known architecture acts as ground truth — if
-the deconvolution is correct, B-cell types must land in follicles and T-cell types in the paracortex.
-A pipeline you can falsify is worth more than one you can only admire.
+Follicles (B / GC / FDC) and paracortex (T) are known ground truth. A pretty map that puts B cells in
+the T zone is a failed deconvolution.
 
 ## Tech stack
 
-Nextflow DSL2 · Docker · scanpy · squidpy · Tangram (PyTorch) · scrublet · Jinja2 · GitHub Actions
+Nextflow DSL2 · Docker / GHCR · scanpy 1.11.5 · squidpy 1.8.2 · tangram-sc 1.0.4 · PyTorch 2.13 CPU ·
+Jinja2 · GitHub Actions. Three images, not one: QC/stats, Tangram, report.
 
 ## Repository layout
 
 ```
 main.nf                 entry workflow
 nextflow.config         params + profiles (standard, docker, test, debug)
-conf/                   base resources, docker, test profile
-modules/local/          one DSL2 process per analysis step
-subworkflows/local/     preprocess (wires the sc + spatial branches)
-bin/                    argparse CLI python scripts — every step runs standalone
-docker/                 one image per tool, versions pinned
-env/                    micromamba env for local script iteration
-assets/                 report template + committed subsampled test data
-docs/                   methods, results narrative, learning log
-setup/                  WSL2 / Docker / Nextflow bootstrap
-tests/                  nf-test
+conf/                   resources, docker containers, test profile
+modules/local/          one DSL2 process per step
+subworkflows/local/     PREPROCESS (sc + spatial)
+bin/                    argparse CLIs (runnable without Nextflow)
+docker/                 pinned image definitions
+assets/test_data/       ~500 stratified cells, ~200 contiguous spots (CI)
+docs/                   methods, results, learning log
+.github/workflows/ci.yml
+tests/                  nf-test (SC_QC unit test; not required for CI)
 ```
-
-Analysis logic lives in `bin/*.py` as command-line tools rather than inline in Nextflow `script:`
-blocks. That is the nf-core convention, and it means every step is debuggable and testable outside
-Nextflow — which matters far more in practice than it sounds.
 
 ## Documentation
 
-- [`PROJECT_PLAN.md`](PROJECT_PLAN.md) — phased build plan and progress tracker
-- [`PROJECT_HANDOFF.md`](PROJECT_HANDOFF.md) — original scope and design brief
-- [`docs/methods.md`](docs/methods.md) — paper-style methods with versions and parameters
-- [`docs/results.md`](docs/results.md) — biological interpretation of the spatial map
-- [`docs/learning-log.md`](docs/learning-log.md) — decisions and debugging notes
+- [`docs/methods.md`](docs/methods.md) — parameters and tools
+- [`docs/results.md`](docs/results.md) — biological interpretation
+- [`docs/learning-log.md`](docs/learning-log.md) — bugs and decisions
+- [`PROJECT_PLAN.md`](PROJECT_PLAN.md) — phase tracker
+- [`PROJECT_HANDOFF.md`](PROJECT_HANDOFF.md) — original brief
 
 ## License
 
